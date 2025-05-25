@@ -1,3 +1,13 @@
 .inspector {
   margin-top: var(--spacing-l);
 }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-s);
+  border-bottom: 1px solid var(--light-borders-color);
+}
