@@ -43,8 +43,11 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
       const client = buildClient({ apiToken: ctx.currentUserAccessToken });
 
       const itemTypes = await client.itemTypes.list();
+      const fullItemTypes = await Promise.all(
+        itemTypes.map((t) => client.itemTypes.find(t.id))
+      );
       const itemTypeMap = new Map<string, any>(
-        itemTypes.map((t: any) => [String(t.id), t])
+        fullItemTypes.map((t: any) => [String(t.id), t])
       );
 
       const internalDomain = ctx.site.attributes.internal_domain;
@@ -202,7 +205,7 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
               {recentUpdates.map((u) => (
                 <li key={`${u.recordId}-${u.occurredAt}`}>
                   <a href={u.url} target="_blank" rel="noopener noreferrer">
-                    {u.itemType}: {u.title || `#${u.recordId}`}
+                    {u.itemType}: {u.title || 'Untitled'}
                   </a>{' '}
                   ({new Date(u.occurredAt).toLocaleString()})
                 </li>
@@ -216,7 +219,7 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
                 <li key={`${p.recordId}-${p.occurredAt}`}>
                   {p.action}{' '}
                   <a href={p.url} target="_blank" rel="noopener noreferrer">
-                    {p.itemType}: {p.title || `#${p.recordId}`}
+                    {p.itemType}: {p.title || 'Untitled'}
                   </a>{' '}
                   ({new Date(p.occurredAt).toLocaleString()})
                 </li>
