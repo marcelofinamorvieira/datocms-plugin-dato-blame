@@ -14,12 +14,18 @@ interface CollaboratorInfo {
 interface UpdateInfo {
   recordId: string;
   occurredAt: string;
+  itemType: string;
+  title: string;
+  url: string;
 }
 
 interface PublishInfo {
   recordId: string;
   occurredAt: string;
   action: string;
+  itemType: string;
+  title: string;
+  url: string;
 }
 
 export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
@@ -37,6 +43,13 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
       const client = buildClient({ apiToken: ctx.currentUserAccessToken });
 
       const itemTypes = await client.itemTypes.list();
+
+      // ensure fields for all item types are loaded to determine titles
+      await Promise.all(
+        itemTypes.map((type) => ctx.loadItemTypeFields(type.id))
+      );
+
+      const internalDomain = ctx.site.attributes.internal_domain;
 
       const updatedItemsArrays = await Promise.all(
         itemTypes.map((type) =>
@@ -57,10 +70,20 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
       );
 
       setRecentUpdates(
-        allUpdatedItems.slice(0, 10).map((item) => ({
-          recordId: String(item.id),
-          occurredAt: item.meta.updated_at,
-        }))
+        allUpdatedItems.slice(0, 10).map((item) => {
+          const type = itemTypes.find((t) => t.id === item.item_type.id) as any;
+          const titleFieldId = type?.relationships?.title_field?.data?.id ||
+            type?.relationships?.presentation_title_field?.data?.id;
+          const fieldApiKey = titleFieldId ? ctx.fields[titleFieldId]?.attributes.api_key : undefined;
+          const title = fieldApiKey && item[fieldApiKey] ? String(item[fieldApiKey]) : '';
+          return {
+            recordId: String(item.id),
+            occurredAt: item.meta.updated_at,
+            itemType: type?.attributes?.name || type?.name || '',
+            title,
+            url: `https://${internalDomain}/editor/items/${item.id}`,
+          } as UpdateInfo;
+        })
       );
 
       const publishedItemsArrays = await Promise.all(
@@ -85,11 +108,21 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
       );
 
       setRecentPublishes(
-        publishCandidates.slice(0, 10).map((item) => ({
-          recordId: String(item.id),
-          occurredAt: item.meta.updated_at,
-          action: item.meta.published_at ? 'publish' : 'unpublish',
-        }))
+        publishCandidates.slice(0, 10).map((item) => {
+          const type = itemTypes.find((t) => t.id === item.item_type.id) as any;
+          const titleFieldId = type?.relationships?.title_field?.data?.id ||
+            type?.relationships?.presentation_title_field?.data?.id;
+          const fieldApiKey = titleFieldId ? ctx.fields[titleFieldId]?.attributes.api_key : undefined;
+          const title = fieldApiKey && item[fieldApiKey] ? String(item[fieldApiKey]) : '';
+          return {
+            recordId: String(item.id),
+            occurredAt: item.meta.updated_at,
+            action: item.meta.published_at ? 'publish' : 'unpublish',
+            itemType: type?.attributes?.name || type?.name || '',
+            title,
+            url: `https://${internalDomain}/editor/items/${item.id}`,
+          } as PublishInfo;
+        })
       );
 
       const users = await client.users.list();
@@ -156,7 +189,10 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
             <ul className={s.list}>
               {recentUpdates.map((u) => (
                 <li key={`${u.recordId}-${u.occurredAt}`}>
-                  #{u.recordId} ({new Date(u.occurredAt).toLocaleString()})
+                  <a href={u.url} target="_blank" rel="noopener noreferrer">
+                    {u.itemType}: {u.title || `#${u.recordId}`}
+                  </a>{' '}
+                  ({new Date(u.occurredAt).toLocaleString()})
                 </li>
               ))}
             </ul>
@@ -166,7 +202,11 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
             <ul className={s.list}>
               {recentPublishes.map((p) => (
                 <li key={`${p.recordId}-${p.occurredAt}`}>
-                  {p.action} #{p.recordId} ({new Date(p.occurredAt).toLocaleString()})
+                  {p.action}{' '}
+                  <a href={p.url} target="_blank" rel="noopener noreferrer">
+                    {p.itemType}: {p.title || `#${p.recordId}`}
+                  </a>{' '}
+                  ({new Date(p.occurredAt).toLocaleString()})
                 </li>
               ))}
             </ul>
