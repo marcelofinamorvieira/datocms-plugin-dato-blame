@@ -202,7 +202,7 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
               {recentUpdates.map((u) => (
                 <li key={`${u.recordId}-${u.occurredAt}`}>
                   <a href={u.url} target="_blank" rel="noopener noreferrer">
-                    {u.itemType}: {u.title || `#${u.recordId}`}
+                    {u.itemType}: {u.title || 'Untitled'}
                   </a>{' '}
                   ({new Date(u.occurredAt).toLocaleString()})
                 </li>
@@ -216,7 +216,7 @@ export default function DatoBlamePage({ ctx }: { ctx: RenderPageCtx }) {
                 <li key={`${p.recordId}-${p.occurredAt}`}>
                   {p.action}{' '}
                   <a href={p.url} target="_blank" rel="noopener noreferrer">
-                    {p.itemType}: {p.title || `#${p.recordId}`}
+                    {p.itemType}: {p.title || 'Untitled'}
                   </a>{' '}
                   ({new Date(p.occurredAt).toLocaleString()})
                 </li>
